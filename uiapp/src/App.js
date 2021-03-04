@@ -1,66 +1,61 @@
 import './App.css';
 import Button from './components/Button';
-import TextInput from './components/TextInput';
+import VoteButtons from './components/VoteButtons';
 import {useState, useEffect} from 'react';
 
 function App() {
 
   const BACKEND_URL = "http://localhost:3010";
 
-  const [eventAgree, setEventAgree] = useState("");
-  const [eventDisAgree, setEventDisAgree] = useState("");
+  const candidates = [
+    {
+      uniqueID: "Candidate-A",
+      color: "blue"
+    },
+    {
+      uniqueID: "Candidate-B",
+      color: "green"
+    },
+    {
+      uniqueID: "Candidate-C",
+      color: "orange"
+    }
+  ]
 
-  const createEventAgree = async () => {
-    let _eventName = eventAgree;
-    if (!_eventName) {
-      _eventName = 'Default Event:- ' + Date() ;
+  const upVote = async (uniqueID) => {
+    const vote = {
+      type: "up",
+      uniqueID: uniqueID
     }
-    const event = {
-      type: 'agree',
-      value: _eventName
-    }
-    await sendPost(event);
-  }
-  
-  const createEventDisAgree = async () => {
-    let _eventName = eventDisAgree;
-    if (!_eventName) {
-      _eventName = 'Default Event:- ' + Date() ;
-    }
-    const event = {
-      type: 'disagree',
-      value: _eventName
-    }
-    await sendPost(event);
+    await sendPost(vote);
   }
 
-  const sendPost = async (body) => {
-    const res = await fetch(`${BACKEND_URL}/events`, {
+  const downVote = async (uniqueID) => {
+    const vote = {
+      type: "down",
+      uniqueID: uniqueID
+    }
+
+    await sendPost(vote);
+  }
+
+  const sendPost = async (vote) => {
+    const response = await fetch(`${BACKEND_URL}/vote`, {
       method: "POST",
       headers: {
-        "Content-type": "application/json"
+        "Content-type": "Application/json"
       },
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    console.log(`Event Created ${JSON.stringify(data)}`);
-  }
-
-  const onEventAgreeSet = (e) => {
-    setEventAgree(e.target.value);
-  }
-
-  const onEventDisAgreeSet = (e) => {
-    setEventDisAgree(e.target.value);
+      body: JSON.stringify(vote)
+    })
+    const data = await response.json();
+    console.log(`Voted Successfully ${JSON.stringify(data)}`)
   }
 
   return (
     <div className='body-class'>
-      <h2 className = 'header'>Kafka Pipeline</h2>
-      <TextInput onChange = {onEventAgreeSet} />
-      <Button text='Agree' onClick = {createEventAgree}/>
-      <TextInput onChange = {onEventDisAgreeSet} />
-      <Button text='Disagree' onClick = {createEventDisAgree}/>
+      <h2 className = 'header'>Online Voting</h2>
+      <VoteButtons type = {'upvote'}candidates = {candidates} onVote = {upVote} />
+      <VoteButtons type = {'downvote'} candidates = {candidates} onVote = {downVote} />
     </div>
   );
 }
