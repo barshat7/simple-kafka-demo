@@ -73,7 +73,7 @@ func sendVote(ctx context.Context, dto VoteDTO) {
 	})
 	message := dto.UniqueID + "::" +dto.Type
 	err := w.WriteMessages(ctx, kafka.Message{
-		Value: []byte(dto.UniqueID),
+		Value: []byte(message),
 	})
 	if err != nil {
 		panic("Message could not be written to kafka " + err.Error())
