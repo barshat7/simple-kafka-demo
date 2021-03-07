@@ -2,10 +2,13 @@ import './App.css';
 import Button from './components/Button';
 import VoteButtons from './components/VoteButtons';
 import {useState, useEffect} from 'react';
+import LeaderBoard from './components/LeaderBoard';
 
 function App() {
 
   const BACKEND_URL = "http://localhost:3010";
+
+  const [leader, setLeader] = useState("Not Defined Yet");
 
   const candidates = [
     {
@@ -39,6 +42,24 @@ function App() {
     await sendPost(vote);
   }
 
+  useEffect(() => {
+    const sse = new EventSource(`${BACKEND_URL}/sse`,
+      { withCredentials: false });
+    function getRealtimeData(data) {
+      console.log(`Leader Now ${data}`)
+      setLeader(data)
+    }
+    sse.onmessage = e => getRealtimeData(e.data);
+    sse.onerror = () => {
+      // error log here 
+      
+      sse.close();
+    }
+    return () => {
+      sse.close();
+    };
+  }, []);
+
   const sendPost = async (vote) => {
     const response = await fetch(`${BACKEND_URL}/vote`, {
       method: "POST",
@@ -56,6 +77,7 @@ function App() {
       <h2 className = 'header'>Online Voting</h2>
       <VoteButtons type = {'upvote'}candidates = {candidates} onVote = {upVote} />
       <VoteButtons type = {'downvote'} candidates = {candidates} onVote = {downVote} />
+      <LeaderBoard leaderName = {leader} />
     </div>
   );
 }

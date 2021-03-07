@@ -1,12 +1,14 @@
 package main
 
 import (
-	"github.com/gorilla/mux"
-	"net/http"
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
+	"github.com/barshat7/simple-kafka-demo/uibackend/sse"
+	"github.com/gorilla/mux"
 	"github.com/rs/cors"
-	"context"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -17,8 +19,12 @@ type VoteDTO struct {
 
 func main() {
 	go initKafka()
+	ctx := context.Background()
 	router := mux.NewRouter()
+	broker := sse.New()
+	go listenLeaderBoardData(ctx, broker)
 	router.HandleFunc("/vote", createEvent).Methods("POST")
+	router.HandleFunc("/sse", broker.RegisterClient)
 	c := cors.New(cors.Options{
         AllowedOrigins: []string{"http://localhost:3000"},
         AllowCredentials: true,
@@ -50,6 +56,7 @@ func createEvent(w http.ResponseWriter, r *http.Request) {
 const (
 	topic = "vote_topic"
 	brokerAddress = "localhost:9092"
+	leaderBoardTopic = "leaderboard_topic"
 )
 
 func initKafka() {
@@ -79,4 +86,24 @@ func sendVote(ctx context.Context, dto VoteDTO) {
 		panic("Message could not be written to kafka " + err.Error())
 	}
 	fmt.Println("Voted -> ", message)
+}
+
+func listenLeaderBoardData(ctx context.Context, broker * sse.Broker) {
+	fmt.Println("Listening To Leaderboard Events...")
+	consume(ctx, broker)
+}
+
+func consume(ctx context.Context, broker * sse.Broker) {
+	r := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: []string {brokerAddress},
+		Topic: leaderBoardTopic,
+	})
+	for {
+		msg, err := r.ReadMessage(ctx)
+		if err != nil {
+			panic("Could Not Read Message " + err.Error())
+		}
+		message := string(msg.Value)
+		broker.SendMessage(message)
+	}
 }
